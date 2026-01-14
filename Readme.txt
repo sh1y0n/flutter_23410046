@@ -15,3 +15,7 @@
 　　　　　　⇒アラーム、リマインド画面
 　　　　　　⇒睡眠データ画面
 　　　
+
+
+
+figma https://www.figma.com/design/ZMiJkga2iwRuNMtDCz7ZIH/%E7%84%A1%E9%A1%8C?node-id=0-1&p=f&t=5xzu3NKAGYInEtSN-0
