@@ -120,3 +120,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+class SleepCalendar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sleep Calendar'),
+      ),
+      body: Center(
+        child: Text('This is the Sleep Calendar'),
+      ),
+    );
+  }
+}

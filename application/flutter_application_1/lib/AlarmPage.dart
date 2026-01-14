@@ -120,3 +120,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+class AlarmPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Alarm Page'),
+      ),
+      body: Center(
+        child: Text('This is the Alarm Page'),
+      ),
+    );
+  }
+}

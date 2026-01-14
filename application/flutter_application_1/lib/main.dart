@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'AlarmPage.dart';
+import 'SleepTimerPage.dart';  
+import 'SleepCalendar.dart';
+import 'SleepDate.dart';
 
 void main() {
   runApp(const MyApp());
@@ -108,6 +112,43 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            // 新しいボタンを追加
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AlarmPage()),
+                );
+              },
+              child: Text('Go to Alarm Page'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SleepTimerPage()),
+                );
+              },
+              child: Text('Go to Sleep Timer Page'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SleepCalendar()),
+                );
+              },
+              child: Text('Go to Sleep Calendar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SleepDate()),
+                );
+              },
+              child: Text('Go to Sleep Date'),
             ),
           ],
         ),

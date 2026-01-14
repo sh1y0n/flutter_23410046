@@ -120,3 +120,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+class SleepTimerPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sleep Timer Page'),
+      ),
+      body: Center(
+        child: Text('This is the Sleep Timer Page'),
+      ),
+    );
+  }
+}
