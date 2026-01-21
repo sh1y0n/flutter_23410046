@@ -1,4 +1,127 @@
 import 'package:flutter/material.dart';
+import 'AlarmPage.dart';
+import 'SleepTimerPage.dart';
+import 'SleepCalendar.dart';
+import 'main.dart';
+
+class SleepDate extends StatefulWidget {
+  @override
+  _SleepDateState createState() => _SleepDateState();
+}
+
+class _SleepDateState extends State<SleepDate> {
+  int _selectedIndex = 4; // 一番右を初期選択
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => AlarmPage(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => SleepTimerPage(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => MyHomePage(title: 'MainPage'),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => SleepCalendar(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 4:
+        // Dateなので何もしない
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sleep Date'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('This is the Sleep Date'),
+          ],
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.alarm, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Alarm',
+          ),
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.timer, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Timer',
+          ),
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.home, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.calendar_today, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.date_range, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Date',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+}
 
 void main() {
   runApp(const MyApp());
@@ -117,20 +240,6 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
-  }
-}
-
-class SleepDate extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Sleep Date'),
-      ),
-      body: Center(
-        child: Text('This is the Sleep Date'),
-      ),
     );
   }
 }

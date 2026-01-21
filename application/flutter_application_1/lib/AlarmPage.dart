@@ -1,4 +1,92 @@
 import 'package:flutter/material.dart';
+import 'main.dart';
+import 'SleepTimerPage.dart';
+import 'SleepCalendar.dart';
+import 'SleepDate.dart';
+
+class AlarmPage extends StatefulWidget {
+  @override
+  _AlarmPageState createState() => _AlarmPageState();
+}
+
+class _AlarmPageState extends State<AlarmPage> {
+  int _selectedIndex = 0; // 一番左を初期選択
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    switch (index) {
+      case 0:
+        // Alarmなので何もしない
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => SleepTimerPage(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => SleepCalendar(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => SleepDate(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Alarm Page'),
+      ),
+      body: Center(
+        child: Text('This is the Alarm Page'),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.alarm),
+            label: 'Alarm',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.timer),
+            label: 'Sleep Timer',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Sleep Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.date_range),
+            label: 'Sleep Date',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+}
 
 void main() {
   runApp(const MyApp());
@@ -117,20 +205,6 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
-  }
-}
-
-class AlarmPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Alarm Page'),
-      ),
-      body: Center(
-        child: Text('This is the Alarm Page'),
-      ),
     );
   }
 }

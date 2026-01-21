@@ -1,4 +1,127 @@
 import 'package:flutter/material.dart';
+import 'AlarmPage.dart';
+import 'main.dart';
+import 'SleepCalendar.dart';
+import 'SleepDate.dart';
+
+class SleepTimerPage extends StatefulWidget {
+  @override
+  _SleepTimerPageState createState() => _SleepTimerPageState();
+}
+
+class _SleepTimerPageState extends State<SleepTimerPage> {
+  int _selectedIndex = 1; // 左を初期選択
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => AlarmPage(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 1:
+        // Timerなので何もしない
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => MyHomePage(title: 'MainPage'),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => SleepCalendar(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 4:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => SleepDate(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sleep Timer Page'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('This is the Sleep Timer Page'),
+          ],
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.alarm, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Alarm',
+          ),
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.timer, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Timer',
+          ),
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.home, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.calendar_today, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: CircleAvatar(
+              child: Icon(Icons.date_range, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
+            label: 'Date',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+}
 
 void main() {
   runApp(const MyApp());
@@ -117,20 +240,6 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
-  }
-}
-
-class SleepTimerPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Sleep Timer Page'),
-      ),
-      body: Center(
-        child: Text('This is the Sleep Timer Page'),
-      ),
     );
   }
 }
