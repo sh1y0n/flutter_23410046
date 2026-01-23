@@ -87,12 +87,23 @@ class _SleepCalendarPageState extends State<SleepCalendarPage> {
 
  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-   
-     backgroundColor: Colors.grey,   body: const Center(
-    
-        child: Text('睡眠カレンダー'),
+ return Scaffold(
+  backgroundColor: Colors.grey,
+  body: Column(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      const SizedBox(height: 40),
+      const Text(
+        '睡眠カレンダー',
+        style: TextStyle(fontSize: 20),
       ),
+      const SizedBox(height: 20),
+      Image.asset(
+        'assets/images/kari.png',
+        width: 300,
+      )
+    ],
+  ),  
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.black,
