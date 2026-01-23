@@ -85,47 +85,53 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
     }
   }
 
-  @override
- Widget build(BuildContext context) {
+ @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+   
+     backgroundColor: Colors.grey,   body: const Center(
+    
+        child: Text('睡眠タイマー'),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.black,
+          showSelectedLabels: false,    
+        showUnselectedLabels: false,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.alarm, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.alarm, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Alarm',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.timer, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.timer, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Timer',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.home, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.home, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Home',
+            backgroundColor: Colors.black
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.calendar_today, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.calendar_today, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Calendar',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.date_range, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.date_range, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Date',
           ),

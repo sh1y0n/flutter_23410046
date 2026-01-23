@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
       ),
-      home: const MyHomePage(title: 'ホーム'),
+      home: const MyHomePage(title: 'MainPage'),
     );
   }
 }
@@ -60,7 +60,6 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         break;
       case 2:
-        // ホームなので何もしない
         break;
       case 3:
         Navigator.pushReplacement(
@@ -88,44 +87,58 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
+   
+  backgroundColor: Colors.grey,
+  body: Align(
+  alignment: Alignment(0, -1), // ← 0が中央、-1が一番上
+  child: Text(
+    '2026年1月1日   Monday  11:11',
+      style: TextStyle(
+    fontSize: 22, // ← ここ
+  )
+  ),
+),
+
+
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.black,
+          showSelectedLabels: false,    
+        showUnselectedLabels: false,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.alarm, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.alarm, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Alarm',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.timer, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.timer, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Timer',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.home, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.home, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Home',
+            backgroundColor: Colors.black
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.calendar_today, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.calendar_today, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Calendar',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.date_range, color: Colors.white),
-              backgroundColor: Colors.black,
+              child: Icon(Icons.date_range, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Date',
           ),

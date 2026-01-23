@@ -24,7 +24,6 @@ class _SleepDateState extends State<SleepDate> {
             pageBuilder: (context, animation, secondaryAnimation) => const AlarmPage(title: 'Alarm Page'),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
-
           ),
         );
         break;
@@ -59,66 +58,69 @@ class _SleepDateState extends State<SleepDate> {
         );
         break;
       case 4:
-        // Dateなので何もしない
         break;
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black, // 黒に設定
-        title: Text('睡眠記録'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('This is the Sleep Date'),
-          ],
-        ),
-      ),
+   
+     backgroundColor: Colors.grey,   
+       
+        body: Align(
+  alignment: Alignment(0, -1), // ← 0が中央、-1が一番上
+  child: Text(
+    '今月の睡眠データ',
+      style: TextStyle(
+    fontSize: 25, // ← ここ
+  ),
+  ),
+),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.black,
+          showSelectedLabels: false,    
+        showUnselectedLabels: false,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.alarm, color: Colors.white),
-              backgroundColor: Colors.blue,
+              child: Icon(Icons.alarm, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Alarm',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.timer, color: Colors.white),
-              backgroundColor: Colors.blue,
+              child: Icon(Icons.timer, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Timer',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.home, color: Colors.white),
-              backgroundColor: Colors.blue,
+              child: Icon(Icons.home, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Home',
+            backgroundColor: Colors.black
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.calendar_today, color: Colors.white),
-              backgroundColor: Colors.blue,
+              child: Icon(Icons.calendar_today, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Calendar',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              child: Icon(Icons.date_range, color: Colors.white),
-              backgroundColor: Colors.blue,
+              child: Icon(Icons.date_range, color: Colors.black), // アイコンを黒に
+              backgroundColor: Colors.grey, // 白に統一
             ),
             label: 'Date',
           ),
         ],
         currentIndex: _selectedIndex,
-        // selectedItemColor: Colors.blue, // 削除: フッターの動きを消す
         onTap: _onItemTapped,
       ),
     );
