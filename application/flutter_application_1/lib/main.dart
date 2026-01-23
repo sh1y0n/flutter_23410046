@@ -15,9 +15,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
       ),
-      home: const MyHomePage(title: 'MainPage'),
+      home: const MyHomePage(title: 'ホーム'),
     );
   }
 }
@@ -43,7 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const AlarmPage(title: 'Alarm Page'), // 修正
+            pageBuilder: (context, animation, secondaryAnimation) => const AlarmPage(title: 'Alarm Page'),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
@@ -53,7 +53,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const SleepTimerPage(title: 'Timer Page'), // 修正
+            pageBuilder: (context, animation, secondaryAnimation) => const SleepTimerPage(title: 'Timer Page'),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
@@ -66,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => SleepCalendarPage(title: 'Calendar Page'),
+            pageBuilder: (context, animation, secondaryAnimation) => const SleepCalendarPage(title: 'Calendar Page'),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
@@ -76,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => SleepDate(), // 修正
+            pageBuilder: (context, animation, secondaryAnimation) =>  SleepDate(),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
@@ -92,47 +92,45 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Container(), // 空の body でフッターのみのページに
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.alarm, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Alarm',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.timer, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Timer',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.home, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.calendar_today, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Calendar',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.date_range, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Date',
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
         onTap: _onItemTapped,
       ),
     );

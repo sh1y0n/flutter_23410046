@@ -10,7 +10,7 @@ class SleepDate extends StatefulWidget {
 }
 
 class _SleepDateState extends State<SleepDate> {
-  int _selectedIndex = 4; // Dateを初期選択
+  int _selectedIndex = 4; // 初期選択
 
   void _onItemTapped(int index) {
     setState(() {
@@ -24,6 +24,7 @@ class _SleepDateState extends State<SleepDate> {
             pageBuilder: (context, animation, secondaryAnimation) => const AlarmPage(title: 'Alarm Page'),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
+
           ),
         );
         break;
@@ -51,7 +52,7 @@ class _SleepDateState extends State<SleepDate> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => SleepCalendarPage(title: 'Calendar Page'), 
+            pageBuilder: (context, animation, secondaryAnimation) => const SleepCalendarPage(title: 'Calendar Page'),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
@@ -67,7 +68,8 @@ class _SleepDateState extends State<SleepDate> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sleep Date'),
+        backgroundColor: Colors.black, // 黒に設定
+        title: Text('睡眠記録'),
       ),
       body: Center(
         child: Column(
@@ -116,7 +118,7 @@ class _SleepDateState extends State<SleepDate> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
+        // selectedItemColor: Colors.blue, // 削除: フッターの動きを消す
         onTap: _onItemTapped,
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'AlarmPage.dart';
 import 'SleepCalendar.dart';
 import 'SleepDate.dart';
+import 'main.dart'; // MyHomePage をインポート
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const SleepTimerPage(title: 'Sleep Timer Page'),
+      home: const SleepTimerPage(title: '睡眠記録'),
     );
   }
 }
@@ -31,7 +32,7 @@ class SleepTimerPage extends StatefulWidget {
 }
 
 class _SleepTimerPageState extends State<SleepTimerPage> {
-  int _selectedIndex = 2; // 真ん中をホームとして初期選択
+  int _selectedIndex = 1; // Timer を初期選択
 
   void _onItemTapped(int index) {
     setState(() {
@@ -49,17 +50,17 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
         );
         break;
       case 1:
+        // Timerなので何もしない
+        break;
+      case 2:
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const SleepTimerPage(title: 'Timer Page'),
+            pageBuilder: (context, animation, secondaryAnimation) => const MyHomePage(title: 'MainPage'),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
         );
-        break;
-      case 2:
-        // ホームなので何もしない
         break;
       case 3:
         Navigator.pushReplacement(
@@ -85,53 +86,51 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+ Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Container(), // 空の body でフッターのみのページに
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.alarm, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Alarm',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.timer, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Timer',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.home, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.calendar_today, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Calendar',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.date_range, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Date',
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
         onTap: _onItemTapped,
       ),
     );

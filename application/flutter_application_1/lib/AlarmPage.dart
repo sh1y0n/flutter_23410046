@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const AlarmPage(title: 'Alarm Page'),
+      home: const AlarmPage(title: 'アラーム'),
     );
   }
 }
@@ -31,7 +31,7 @@ class AlarmPage extends StatefulWidget {
 }
 
 class _AlarmPageState extends State<AlarmPage> {
-  int _selectedIndex = 0; // 初期選択を変更
+  int _selectedIndex = 0; // 初期選択
 
   void _onItemTapped(int index) {
     setState(() {
@@ -91,47 +91,45 @@ class _AlarmPageState extends State<AlarmPage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Container(), // 空の body でフッターのみのページに
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.alarm, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Alarm',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.timer, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Timer',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.home, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.calendar_today, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Calendar',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               child: Icon(Icons.date_range, color: Colors.white),
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black,
             ),
             label: 'Date',
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
         onTap: _onItemTapped,
       ),
     );
