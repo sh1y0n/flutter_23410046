@@ -19,6 +19,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const SleepTimerPage(title: '睡眠記録'),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
