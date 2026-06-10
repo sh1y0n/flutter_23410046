@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; 
 import 'AlarmPage.dart';
-import 'SleepTimerPage.dart';  
+import 'SleepTimerPage.dart';
 import 'SleepCalendar.dart';
 import 'SleepDate.dart';
 
@@ -13,12 +14,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
-      ),
-      home: const MyHomePage(title: 'MainPage'),
-      debugShowCheckedModeBanner: false
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false, // 右上のリボンを非表示に
+      home: MyHomePage(title: 'MainPage'),
     );
   }
 }
@@ -33,54 +31,51 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _selectedIndex = 2; // 真ん中をホームとして初期選択
+  int _selectedIndex = 2; // Homeを初期選択
+
+  // --- 状態管理用の変数 ---
+  bool _isSleepingNow = false; 
+  String _latestAlarmTime = "07:00"; 
+  String _latestSleepTime = "23:00"; 
+  String _activeDaysStr = "未設定"; 
+  bool _isAlarmActive = false; 
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAlarmAndTimerStatus(); 
+  }
+
+  Future<void> _loadAlarmAndTimerStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isSleepingNow = prefs.getBool('isCounting') ?? false;
+      _latestAlarmTime = prefs.getString('saved_wakeUpTime') ?? "07:00";
+      _latestSleepTime = prefs.getString('saved_sleepTime') ?? "23:00";
+      _activeDaysStr = prefs.getString('saved_activeDays') ?? "月・火・水・木・金";
+      _isAlarmActive = prefs.getBool('saved_isAlarmActive') ?? true;
+    });
+  }
 
   void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
     setState(() {
       _selectedIndex = index;
     });
     switch (index) {
       case 0:
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const AlarmPage(title: 'Alarm Page'),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
+        Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (context, a, b) => const AlarmPage(title: 'Alarm Page'), transitionDuration: Duration.zero));
         break;
       case 1:
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const SleepTimerPage(title: 'Timer Page'),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
+        Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (context, a, b) => const SleepTimerPage(title: 'Timer Page'), transitionDuration: Duration.zero));
         break;
       case 2:
         break;
       case 3:
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const SleepCalendarPage(title: 'Calendar Page'),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
+        Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (context, a, b) => const SleepCalendarPage(title: 'Calendar Page'), transitionDuration: Duration.zero));
         break;
       case 4:
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>  SleepDate(),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
+        Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (context, a, b) => const SleepDate(), transitionDuration: Duration.zero));
         break;
     }
   }
@@ -88,61 +83,173 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-   
-  backgroundColor: Colors.grey,
-  body: Align(
-  alignment: Alignment(0, -1), // ← 0が中央、-1が一番上
-  child: Text(
-    '2026年1月1日   Monday  11:11',
-      style: TextStyle(
-    fontSize: 22, // ← ここ
-  )
-  ),
-),
+      backgroundColor: Colors.grey, 
+      appBar: AppBar(
+        title: const Text('ホーム'),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'こんにちは！',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+            ),
+            const SizedBox(height: 20),
 
+            const Text(
+              '【現在の睡眠ステータス】',
+              style: TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              color: Colors.white24, 
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isSleepingNow ? Icons.bedtime : Icons.wb_sunny_rounded,
+                      color: _isSleepingNow ? Colors.indigo : Colors.orange,
+                      size: 40,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _isSleepingNow ? '現在、睡眠を計測中です' : '現在は起きています',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _isSleepingNow ? '起きたらタイマー画面で停止してください。' : '寝る前にタイマー画面で開始してください。',
+                            style: const TextStyle(fontSize: 12, color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
 
+            const Text(
+              '【最新のアラーム設定】',
+              style: TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              color: Colors.white24, 
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '次の予定スケジュール',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _isAlarmActive ? Colors.black : Colors.grey[700], 
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _isAlarmActive ? 'ON' : 'OFF',
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24, color: Colors.black26),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          children: [
+                            const Text('🌙 就寝時間', style: TextStyle(color: Colors.black54, fontSize: 12)),
+                            const SizedBox(height: 4),
+                            Text(_latestSleepTime, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                          ],
+                        ),
+                        const Icon(Icons.arrow_forward, color: Colors.black54),
+                        Column(
+                          children: [
+                            const Text('☀️ 起床時間', style: TextStyle(color: Colors.black54, fontSize: 12)),
+                            const SizedBox(height: 4),
+                            Text(_latestAlarmTime, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24, color: Colors.black26),
+                    Row(
+                      children: [
+                        const Icon(Icons.repeat, color: Colors.black54, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          '対象曜日: $_activeDaysStr',
+                          style: const TextStyle(fontSize: 13, color: Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // ★追加：アラーム設定画面への遷移用リンクボタン
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.black, // 文字とアイコンの色を締まった黒に
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+                icon: const Text(
+                  'アラームの設定・変更はこちら',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, decoration: TextDecoration.underline), // アンダーラインを引いてリンク風に
+                ),
+                label: const Icon(Icons.arrow_forward_ios, size: 12), // 小さな矢印アイコン
+                onPressed: () {
+                  // アラーム設定画面へパッと切り替える処理
+                  Navigator.pushReplacement(
+                    context, 
+                    PageRouteBuilder(
+                      pageBuilder: (context, a, b) => const AlarmPage(title: 'Alarm Page'), 
+                      transitionDuration: Duration.zero,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.black,
-          showSelectedLabels: false,    
+        showSelectedLabels: false,    
         showUnselectedLabels: false,
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: CircleAvatar(
-              child: Icon(Icons.alarm, color: Colors.black), // アイコンを黒に
-              backgroundColor: Colors.grey, // 白に統一
-            ),
-            label: 'Alarm',
-          ),
-          BottomNavigationBarItem(
-            icon: CircleAvatar(
-              child: Icon(Icons.timer, color: Colors.black), // アイコンを黒に
-              backgroundColor: Colors.grey, // 白に統一
-            ),
-            label: 'Timer',
-          ),
-          BottomNavigationBarItem(
-            icon: CircleAvatar(
-              child: Icon(Icons.home, color: Colors.black), // アイコンを黒に
-              backgroundColor: Colors.grey, // 白に統一
-            ),
-            label: 'Home',
-            backgroundColor: Colors.black
-          ),
-          BottomNavigationBarItem(
-            icon: CircleAvatar(
-              child: Icon(Icons.calendar_today, color: Colors.black), // アイコンを黒に
-              backgroundColor: Colors.grey, // 白に統一
-            ),
-            label: 'Calendar',
-          ),
-          BottomNavigationBarItem(
-            icon: CircleAvatar(
-              child: Icon(Icons.date_range, color: Colors.black), // アイコンを黒に
-              backgroundColor: Colors.grey, // 白に統一
-            ),
-            label: 'Date',
-          ),
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: CircleAvatar(child: Icon(Icons.alarm, color: Colors.black), backgroundColor: Colors.grey), label: 'Alarm'),
+          BottomNavigationBarItem(icon: CircleAvatar(child: Icon(Icons.timer, color: Colors.black), backgroundColor: Colors.grey), label: 'Timer'),
+          BottomNavigationBarItem(icon: CircleAvatar(child: Icon(Icons.home, color: Colors.black), backgroundColor: Colors.grey), label: 'Home'),
+          BottomNavigationBarItem(icon: CircleAvatar(child: Icon(Icons.calendar_today, color: Colors.black), backgroundColor: Colors.grey), label: 'Calendar'),
+          BottomNavigationBarItem(icon: CircleAvatar(child: Icon(Icons.date_range, color: Colors.black), backgroundColor: Colors.grey), label: 'Date'),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
