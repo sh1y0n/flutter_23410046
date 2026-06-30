@@ -1,4 +1,4 @@
-import 'dart:convert'; // ★JSON変換用に追加
+import 'dart:convert'; // ★JSON変換用
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AlarmPage.dart';
@@ -31,7 +31,6 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
     _loadSleepStatus(); 
   }
 
-  // ★スマホから状態を読み出す関数
   Future<void> _loadSleepStatus() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -41,7 +40,6 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
         _sleepStartTime = DateTime.parse(startTimeStr);
       }
 
-      // 前回の簡易表示用データを読み込み
       _sleepQuality = prefs.getString('lastSleepQuality') ?? "未記録";
       _lastResultText = prefs.getString('lastSleepResult') ?? "";
 
@@ -53,12 +51,11 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
     });
   }
 
-  // ★「寝る」「起きる」ボタンが押された時の処理
   Future<void> _handleTimerButton() async {
     final prefs = await SharedPreferences.getInstance();
 
     if (!_isCounting) {
-      // 【就寝開始の処理】
+      // 【就寝開始】
       final now = DateTime.now();
       setState(() {
         _isCounting = true;
@@ -68,10 +65,8 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
 
       await prefs.setBool('isCounting', true);
       await prefs.setString('sleepStartTime', now.toIso8601String());
-      
-      print('=== 【タイマー】就寝計測を開始: $now ===');
     } else {
-      // 【起床の処理】
+      // 【起床（計測停止）】
       setState(() {
         _isCounting = false;
         _statusText = '起きています';
@@ -84,7 +79,6 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
     }
   }
 
-  // ★睡眠の質を選択するポップアップ
   void _showQualitySelectionDialog(SharedPreferences prefs) {
     final wakeUpTime = DateTime.now();
     
@@ -108,6 +102,7 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
+              // ★このボタンを押したときの「中身のデータ」が分析画面に送られます！
               _buildQualityButton(context, prefs, '😆 快眠（スッキリ）', '快眠', wakeUpTime),
               _buildQualityButton(context, prefs, '🙂 普通（いつも通り）', '普通', wakeUpTime),
               _buildQualityButton(context, prefs, '🥱 眠い（寝足りない）', '眠い', wakeUpTime),
@@ -118,7 +113,6 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
     );
   }
 
-  // ポップアップ内の選択ボタン
   Widget _buildQualityButton(BuildContext context, SharedPreferences prefs, String label, String value, DateTime wakeUpTime) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -133,7 +127,6 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           onPressed: () async {
-            // 1. 時間の引き算と分データの計算
             String durationText = "0分";
             int durationMinutes = 0;
 
@@ -144,31 +137,30 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
               final seconds = difference.inSeconds.remainder(60);
               durationText = '$hours時間 $minutes分 $seconds秒';
               
-              durationMinutes = difference.inMinutes; // カレンダー計算用の合計分数
+              durationMinutes = difference.inMinutes; // データの合計分数
             }
 
-            // ★重要：寝た日の日付（例: "2026-06-08"）をキー（保存名）にする
+            // 寝た日の日付をキーにする
             final targetDate = _sleepStartTime ?? DateTime.now();
             final dateKey = "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
 
-            // 2. カレンダー・修正画面と共有するためのMAPデータを作成（JSON化）
+            // ★カレンダー＆分析画面と完全に共有するJSON用マップデータ
             final sleepData = {
               'sleepStartTime': _sleepStartTime?.toIso8601String(),
               'wakeUpTime': wakeUpTime.toIso8601String(),
               'durationMinutes': durationMinutes,
               'durationText': durationText,
-              'quality': value,
+              'quality': value, // ★ここに「快眠」などの文字がカチッと入ります
             };
 
-            // スマホに日付をキーにして保存（これでカレンダーから日付指定で引き出せます）
+            // 日付をキーにしてローカルストレージに確定保存
             await prefs.setString(dateKey, jsonEncode(sleepData));
 
-            // 前回の簡易表示用も念のため更新
+            // 前回の表示用データも更新
             await prefs.setString('lastSleepQuality', value);
             await prefs.setString('lastSleepResult', durationText);
             await prefs.remove('sleepStartTime'); 
 
-            // 3. 画面の見た目を更新
             setState(() {
               _sleepQuality = value;
               _lastResultText = durationText;
@@ -176,11 +168,8 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
 
             Navigator.of(context).pop(); 
             
-            print('=== 【データ確定保存】キー: $dateKey ===');
-            print('データ中身: $sleepData');
-            
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('[$dateKey] の睡眠記録を保存しました！')),
+              SnackBar(content: Text('[$dateKey] に「$value」の記録を保存しました！')),
             );
           },
           child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
@@ -207,7 +196,7 @@ class _SleepTimerPageState extends State<SleepTimerPage> {
         Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (context, a, b) => const SleepCalendarPage(title: 'Calendar Page'), transitionDuration: Duration.zero));
         break;
       case 4:
-        Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (context, a, b) => SleepDate(), transitionDuration: Duration.zero));
+        Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (context, a, b) => const SleepDate(), transitionDuration: Duration.zero));
         break;
     }
   }

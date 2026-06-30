@@ -1,6 +1,7 @@
-import 'dart:async'; 
+import 'dart:async';
+import 'dart:convert'; // JSON変換用
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ★追加
+import 'package:shared_preferences/shared_preferences.dart'; // 保存用
 import 'SleepTimerPage.dart';  
 import 'SleepCalendar.dart';
 import 'SleepDate.dart';
@@ -16,12 +17,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      debugShowCheckedModeBanner: false, 
+      debugShowCheckedModeBanner: false,
       home: AlarmPage(title: 'アラーム設定'),
     );
   }
 }
 
+// アラーム設定クラス
 class AlarmSettings {
   String id;
   String title;          
@@ -39,6 +41,30 @@ class AlarmSettings {
     required this.selectedDays,
     this.isActive = true,
   });
+
+  // Map（JSON形式）に変換
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'wakeUpHour': wakeUpTime.hour,
+    'wakeUpMinute': wakeUpTime.minute,
+    'sleepHour': sleepTime.hour,
+    'sleepMinute': sleepTime.minute,
+    'selectedDays': selectedDays,
+    'isActive': isActive,
+  };
+
+  // Map（JSON形式）から復元
+  factory AlarmSettings.fromJson(Map<String, dynamic> json) {
+    return AlarmSettings(
+      id: json['id'],
+      title: json['title'],
+      wakeUpTime: TimeOfDay(hour: json['wakeUpHour'], minute: json['wakeUpMinute']),
+      sleepTime: TimeOfDay(hour: json['sleepHour'], minute: json['sleepMinute']),
+      selectedDays: List<bool>.from(json['selectedDays']),
+      isActive: json['isActive'],
+    );
+  }
 }
 
 class AlarmPage extends StatefulWidget {
@@ -50,28 +76,18 @@ class AlarmPage extends StatefulWidget {
   State<AlarmPage> createState() => _AlarmPageState();
 }
 
-
-
 class _AlarmPageState extends State<AlarmPage> {
   int _selectedIndex = 0; 
   Timer? _currentTimeTimer; 
-
-  List<AlarmSettings> _alarmList = [
-    AlarmSettings(
-      id: '1',
-      title: '平日のスケジュール',
-      wakeUpTime: const TimeOfDay(hour: 7, minute: 0), 
-      sleepTime: const TimeOfDay(hour: 23, minute: 0),  
-      selectedDays: [true, true, true, true, true, false, false], 
-    ),
-  ];
-
+  List<AlarmSettings> _alarmList = []; 
+  
+  // ★1: 曜日選択ボタン用のリストをしっかり定義
   final List<String> _weekDays = ['月', '火', '水', '木', '金', '土', '日'];
 
   @override
   void initState() {
     super.initState();
-    _loadAlarmSettings(); // ★起動時に前回の時間を読み込む
+    _loadAlarmData(); // 起動時にデータを読み込む
     _startClockListener(); 
   }
 
@@ -81,59 +97,41 @@ class _AlarmPageState extends State<AlarmPage> {
     super.dispose();
   }
 
-  // ★スマホから保存されたアラーム時刻を復元する関数
-  Future<void> _loadAlarmSettings() async {
+  // 端末（SharedPreferences）からアラームデータを読み込む
+  Future<void> _loadAlarmData() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedWakeUp = prefs.getString('saved_wakeUpTime');
-    final savedSleep = prefs.getString('saved_sleepTime');
-    final savedIsActive = prefs.getBool('saved_isAlarmActive');
-
-    setState(() {
-      if (savedWakeUp != null) {
-        final parts = savedWakeUp.split(':');
-        _alarmList[0].wakeUpTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    final String? alarmDataString = prefs.getString('saved_alarm_list');
+    
+    if (alarmDataString != null) {
+      try {
+        final List<dynamic> decodedList = jsonDecode(alarmDataString);
+        setState(() {
+          _alarmList = decodedList.map((item) => AlarmSettings.fromJson(item)).toList();
+        });
+      } catch (e) {
+        print('アラームデータのパースエラー: $e');
       }
-      if (savedSleep != null) {
-        final parts = savedSleep.split(':');
-        _alarmList[0].sleepTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-      }
-      if (savedIsActive != null) {
-        _alarmList[0].isActive = savedIsActive;
-      }
-      
-      // 曜日データの復元（文字列からList<bool>へ戻す）
-      final savedDaysStr = prefs.getString('saved_activeDays');
-      if (savedDaysStr != null) {
-        for (int i = 0; i < _weekDays.length; i++) {
-          _alarmList[0].selectedDays[i] = savedDaysStr.contains(_weekDays[i]);
-        }
-      }
-    });
+    } else {
+      // 保存データが何も無い時の初期値
+      setState(() {
+        _alarmList = [
+          AlarmSettings(
+            id: '1',
+            title: '平日のスケジュール',
+            wakeUpTime: const TimeOfDay(hour: 7, minute: 0), 
+            sleepTime: const TimeOfDay(hour: 23, minute: 0),  
+            selectedDays: [true, true, true, true, true, false, false],
+          ),
+        ];
+      });
+    }
   }
 
-  // ★ホーム画面と同期するために、現在のデータをスマホに送り込む関数
-  Future<void> _syncToHome() async {
+  // 現在のアラーム一覧を保存する
+  Future<void> _saveAlarmData() async {
     final prefs = await SharedPreferences.getInstance();
-    final alarm = _alarmList[0];
-
-    // 「07:05」のような文字列に整形
-    final wakeUpStr = '${alarm.wakeUpTime.hour.toString().padLeft(2, '0')}:${alarm.wakeUpTime.minute.toString().padLeft(2, '0')}';
-    final sleepStr = '${alarm.sleepTime.hour.toString().padLeft(2, '0')}:${alarm.sleepTime.minute.toString().padLeft(2, '0')}';
-
-    // 有効な曜日だけを「月・火・水」の文字列に結合
-    List<String> activeDaysList = [];
-    for (int i = 0; i < alarm.selectedDays.length; i++) {
-      if (alarm.selectedDays[i]) {
-        activeDaysList.add(_weekDays[i]);
-      }
-    }
-    final activeDaysStr = activeDaysList.isEmpty ? "設定なし" : activeDaysList.join('・');
-
-    // スマホの共有スペースに突っ込む
-    await prefs.setString('saved_wakeUpTime', wakeUpStr);
-    await prefs.setString('saved_sleepTime', sleepStr);
-    await prefs.setString('saved_activeDays', activeDaysStr);
-    await prefs.setBool('saved_isAlarmActive', alarm.isActive);
+    final List<Map<String, dynamic>> jsonList = _alarmList.map((alarm) => alarm.toJson()).toList();
+    await prefs.setString('saved_alarm_list', jsonEncode(jsonList));
   }
 
   void _startClockListener() {
@@ -193,9 +191,7 @@ class _AlarmPageState extends State<AlarmPage> {
                 foregroundColor: isWakeUp ? Colors.black : Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              onPressed: () {
-                Navigator.of(context).pop(); 
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('閉じる', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
@@ -217,13 +213,11 @@ class _AlarmPageState extends State<AlarmPage> {
         ),
       );
     });
+    _saveAlarmData(); 
   }
 
   Future<TimeOfDay?> _selectTime(BuildContext context, TimeOfDay initialTime) async {
-    return await showTimePicker(
-      context: context,
-      initialTime: initialTime,
-    );
+    return await showTimePicker(context: context, initialTime: initialTime);
   }
 
   void _onItemTapped(int index) {
@@ -277,15 +271,13 @@ class _AlarmPageState extends State<AlarmPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Column(
+                      // ★2: タイポ（Cross Levant）を「crossAxisAlignment」に修正
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              alarm.title,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
-                            ),
+                            Text(alarm.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
                             Switch(
                               activeColor: Colors.black,
                               value: alarm.isActive,
@@ -293,7 +285,7 @@ class _AlarmPageState extends State<AlarmPage> {
                                 setState(() {
                                   alarm.isActive = value;
                                 });
-                                _syncToHome(); // ★スイッチON/OFFの瞬間保存
+                                _saveAlarmData(); 
                               },
                             ),
                           ],
@@ -309,16 +301,13 @@ class _AlarmPageState extends State<AlarmPage> {
                                   setState(() {
                                     alarm.sleepTime = selected;
                                   });
-                                  _syncToHome(); // ★就寝時間変更の瞬間保存
+                                  _saveAlarmData(); 
                                 }
                               },
                               child: Column(
                                 children: [
                                   const Text('🌙 就寝リマインド', style: TextStyle(color: Colors.black54, fontSize: 12)),
-                                  Text(
-                                    alarm.sleepTime.format(context),
-                                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
-                                  ),
+                                  Text(alarm.sleepTime.format(context), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
                                 ],
                               ),
                             ),
@@ -330,16 +319,13 @@ class _AlarmPageState extends State<AlarmPage> {
                                   setState(() {
                                     alarm.wakeUpTime = selected;
                                   });
-                                  _syncToHome(); // ★起床時間変更の瞬間保存
+                                  _saveAlarmData(); 
                                 }
                               },
                               child: Column(
                                 children: [
                                   const Text('☀️ 起床アラーム', style: TextStyle(color: Colors.black54, fontSize: 12)),
-                                  Text(
-                                    alarm.wakeUpTime.format(context),
-                                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
-                                  ),
+                                  Text(alarm.wakeUpTime.format(context), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
                                 ],
                               ),
                             ),
@@ -353,7 +339,7 @@ class _AlarmPageState extends State<AlarmPage> {
                               setState(() {
                                 alarm.selectedDays[dayIndex] = !alarm.selectedDays[dayIndex];
                               });
-                              _syncToHome(); // ★曜日カチカチ切り替えの瞬間保存
+                              _saveAlarmData(); 
                             },
                             borderRadius: const BorderRadius.all(Radius.circular(8)),
                             selectedBorderColor: Colors.black,
@@ -365,6 +351,18 @@ class _AlarmPageState extends State<AlarmPage> {
                             children: _weekDays.map((day) => Text(day)).toList(),
                           ),
                         ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                            onPressed: () {
+                              setState(() {
+                                _alarmList.removeAt(index);
+                              });
+                              _saveAlarmData(); 
+                            },
+                          ),
+                        )
                       ],
                     ),
                   ),
