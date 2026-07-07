@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      debugShowCheckedModeBanner: false, // 右上のリボンを非表示に
+      debugShowCheckedModeBanner: false, 
       home: MyHomePage(title: 'MainPage'),
     );
   }
@@ -31,14 +31,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _selectedIndex = 2; // Homeを初期選択
+  int _selectedIndex = 2; 
 
   // --- 状態管理用の変数 ---
   bool _isSleepingNow = false; 
   String _latestAlarmTime = "07:00"; 
   String _latestSleepTime = "23:00"; 
-  String _activeDaysStr = "未設定"; 
-  bool _isAlarmActive = false; 
+  String _activeDaysStr = "月・火・水・木・金"; 
+  bool _isAlarmActive = true; 
 
   @override
   void initState() {
@@ -46,14 +46,13 @@ class _MyHomePageState extends State<MyHomePage> {
     _loadAlarmAndTimerStatus(); 
   }
 
+  // 起動時にSharedPreferencesのシンプルデータを直接読み込む
   Future<void> _loadAlarmAndTimerStatus() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _isSleepingNow = prefs.getBool('isCounting') ?? false;
-      _latestAlarmTime = prefs.getString('saved_wakeUpTime') ?? "07:00";
       _latestSleepTime = prefs.getString('saved_sleepTime') ?? "23:00";
-      _activeDaysStr = prefs.getString('saved_activeDays') ?? "月・火・水・木・金";
-      _isAlarmActive = prefs.getBool('saved_isAlarmActive') ?? true;
+      _latestAlarmTime = prefs.getString('saved_wakeUpTime') ?? "07:00";
     });
   }
 
@@ -210,22 +209,20 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             
-            // ★追加：アラーム設定画面への遷移用リンクボタン
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.black, // 文字とアイコンの色を締まった黒に
+                  foregroundColor: Colors.black, 
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 ),
                 icon: const Text(
                   'アラームの設定・変更はこちら',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, decoration: TextDecoration.underline), // アンダーラインを引いてリンク風に
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, decoration: TextDecoration.underline), 
                 ),
-                label: const Icon(Icons.arrow_forward_ios, size: 12), // 小さな矢印アイコン
+                label: const Icon(Icons.arrow_forward_ios, size: 12), 
                 onPressed: () {
-                  // アラーム設定画面へパッと切り替える処理
                   Navigator.pushReplacement(
                     context, 
                     PageRouteBuilder(
