@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ★データ読み込み用
+import 'package:shared_preferences/shared_preferences.dart';
 import 'AlarmPage.dart';
 import 'SleepTimerPage.dart';
 import 'SleepCalendar.dart';
@@ -14,83 +14,173 @@ class SleepDate extends StatefulWidget {
 }
 
 class _SleepDateState extends State<SleepDate> {
-  int _selectedIndex = 4; 
+  int _selectedIndex = 4;
 
-  // --- 計算されたリアルタイムデータを格納する変数 ---
-  String _averageSleepTime = "計算中...";
-  String _bestConditionTime = "計算中...";
-  final String _sleepEfficiency = "88%"; // 固定のモック（デザイン用）
-  final String _socialJetlag = "1時間15分"; // 固定のモック（デザイン用）
+  DateTime _focusedMonth = DateTime.now();
+
+  List<double> _monthScores = [];
+  List<String> _monthDays = [];
+
+  double _avgAll = 0.0;
+  double _avgWeekday = 0.0;
+  double _avgWeekend = 0.0;
+
+  // ★ ベストパターンの表示用変数
+  String _bestBedTime = '--:--';
+  String _bestDuration = '-.-';
 
   @override
   void initState() {
     super.initState();
-    _calculateSleepAnalytics(); // ★画面が開いた瞬間にデータを集計・計算する
+    _analyzeMonthSleepLogs();
   }
 
-  // ★カレンダーの全データを走査して平均などを割り出す関数
-  Future<void> _calculateSleepAnalytics() async {
+  Future<void> _analyzeMonthSleepLogs() async {
     final prefs = await SharedPreferences.getInstance();
-    final keys = prefs.getKeys();
+    
+    double totalHoursAll = 0;
+    double totalHoursWeekday = 0;
+    double totalHoursWeekend = 0;
+    int weekdayCount = 0;
+    int weekendCount = 0;
+    int validLogCount = 0;
 
-    int totalMinutes = 0;
-    int totalCount = 0;
+    // ベスト時間算出用の変数
+    double totalSleepMinutesForBest = 0;
+    double totalBedTimeMinutesForBest = 0; // 0:00からの経過分数で計算
+    double totalWeight = 0;
 
-    int bestTotalMinutes = 0;
-    int bestCount = 0;
+    List<double> scores = [];
+    List<String> dayLabels = [];
 
-    for (String key in keys) {
-      // YYYY-MM-DD 形式のデータ（カレンダーの記録）だけを対象にする
-      if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(key)) {
-        final jsonString = prefs.getString(key);
-        if (jsonString != null) {
-          try {
-            final Map<String, dynamic> data = jsonDecode(jsonString);
-            final int minutes = data['durationMinutes'] ?? 0;
-            final String quality = data['quality'] ?? '普通';
+    final lastDayOfMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1).subtract(const Duration(days: 1));
 
-            if (minutes > 0) {
-              // ① 全体の平均用カウント
-              totalMinutes += minutes;
-              totalCount++;
+    for (int day = 1; day <= lastDayOfMonth.day; day++) {
+      final targetDate = DateTime(_focusedMonth.year, _focusedMonth.month, day);
+      final dateKey = "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
+      String label = "$day";
 
-              // ② 調子がいいとき（快眠）だけの平均用カウント
-              if (quality == '快眠') {
-                bestTotalMinutes += minutes;
-                bestCount++;
-              }
-            }
-          } catch (e) {
-            print('JSONパースエラー: $e');
+      final String? logString = prefs.getString(dateKey);
+
+      if (logString != null && logString.isNotEmpty) {
+        try {
+          final Map<String, dynamic> log = jsonDecode(logString);
+          
+          int minutes = log['durationMinutes'] ?? 0;
+          double hours = minutes / 60.0;
+          
+          int weekday = targetDate.weekday; 
+          String condition = log['quality'] ?? '普通'; 
+
+          // 1. 本人の睡眠の調子（主観）をベース点数にする
+          double score = 60.0;
+          double currentWeight = 0; // ベストパターン計算用の重み
+
+          if (condition == '快眠') {
+            score = 90.0;
+            currentWeight = 2.0; // 快眠は影響度2倍
+          } else if (condition == '普通') {
+            score = 70.0; 
+            currentWeight = 1.0; // 普通は影響度1倍
+          } else {
+            score = 45.0;
+            currentWeight = 0.0; // 眠い日は計算に入れない
           }
+
+          // 2. 生活リズムによる減点ロジック
+          if (log['sleepStartTime'] != null && log['wakeUpTime'] != null) {
+            final DateTime start = DateTime.parse(log['sleepStartTime']);
+            final DateTime wake = DateTime.parse(log['wakeUpTime']);
+
+            if (start.hour >= 3 && start.hour < 5) score -= 20;
+            if (wake.hour >= 11 && wake.hour < 15) score -= 20;
+            if ((start.hour >= 22 || start.hour <= 1) && (hours >= 6.5 && hours <= 8.5)) score += 10;
+
+            // ★ 快眠・普通の日であれば、ベスト時間算出用のデータを集計
+            if (currentWeight > 0) {
+              // 就寝時刻を「当日の正午(12:00)」からの経過分数をベースに直す（23時や深夜1時を連続した時間として平均化するため）
+              int baseMinutes = start.hour * 60 + start.minute;
+              if (start.hour < 12) {
+                baseMinutes += 24 * 60; // 深夜・早朝は翌日分として加算
+              }
+              
+              totalBedTimeMinutesForBest += baseMinutes * currentWeight;
+              totalSleepMinutesForBest += minutes * currentWeight;
+              totalWeight += currentWeight;
+            }
+          }
+
+          if (score > 100) score = 100;
+          if (score < 0) score = 0;
+
+          totalHoursAll += hours;
+          if (weekday == 6 || weekday == 7) {
+            totalHoursWeekend += hours;
+            weekendCount++;
+          } else {
+            totalHoursWeekday += hours;
+            weekdayCount++;
+          }
+
+          validLogCount++;
+          scores.add(score);
+          dayLabels.add(label);
+
+        } catch (e) {
+          print('$dateKey のデータ解析エラー: $e');
+          scores.add(0.0);
+          dayLabels.add(label);
         }
+      } else {
+        scores.add(0.0);
+        dayLabels.add(label);
       }
     }
 
-    setState(() {
-      // 全体平均の計算とテキスト整形
-      if (totalCount > 0) {
-        final int avgMinutes = totalMinutes ~/ totalCount;
-        _averageSleepTime = '${avgMinutes ~/ 60}時間 ${avgMinutes % 60}分';
-      } else {
-        _averageSleepTime = '--時間 --分';
-      }
+    // 平均値の計算
+    double avgAll = validLogCount > 0 ? totalHoursAll / validLogCount : 0.0;
+    double avgWeekday = weekdayCount > 0 ? totalHoursWeekday / weekdayCount : 0.0;
+    double avgWeekend = weekendCount > 0 ? totalHoursWeekend / weekendCount : 0.0;
 
-      // 快眠平均の計算とテキスト整形
-      if (bestCount > 0) {
-        final int avgBestMinutes = bestTotalMinutes ~/ bestCount;
-        _bestConditionTime = '${avgBestMinutes ~/ 60}時間 ${avgBestMinutes % 60}分';
-      } else {
-        _bestConditionTime = '--時間 --分';
+    // ★ ベスト睡眠パターンの最終算出
+    String bestBedTimeStr = '--:--';
+    String bestDurationStr = '-.-';
+
+    if (totalWeight > 0) {
+      // 平均就寝分数を出す
+      int avgBedTimeRaw = (totalBedTimeMinutesForBest / totalWeight).round();
+      if (avgBedTimeRaw >= 24 * 60) {
+        avgBedTimeRaw -= 24 * 60; // 24時間を超えていたら元に戻す
       }
+      int bestHour = avgBedTimeRaw ~/ 60;
+      int bestMinute = avgBedTimeRaw % 60;
+      bestBedTimeStr = "${bestHour.toString().padLeft(2, '0')}:${bestMinute.toString().padLeft(2, '0')}";
+
+      // 平均睡眠時間を出す
+      double avgSleepHours = (totalSleepMinutesForBest / totalWeight) / 60.0;
+      bestDurationStr = avgSleepHours.toStringAsFixed(1);
+    }
+
+    setState(() {
+      _monthScores = scores;
+      _monthDays = dayLabels;
+      _avgAll = double.parse(avgAll.toStringAsFixed(1));
+      _avgWeekday = double.parse(avgWeekday.toStringAsFixed(1));
+      _avgWeekend = double.parse(avgWeekend.toStringAsFixed(1));
+      _bestBedTime = bestBedTimeStr;
+      _bestDuration = bestDurationStr;
     });
+  }
+
+  void _changeMonth(int increment) {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + increment, 1);
+    });
+    _analyzeMonthSleepLogs(); 
   }
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
-    setState(() {
-      _selectedIndex = index;
-    });
     switch (index) {
       case 0:
         Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (context, a, b) => const AlarmPage(title: 'Alarm Page'), transitionDuration: Duration.zero));
@@ -118,45 +208,152 @@ class _SleepDateState extends State<SleepDate> {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
-      body: ListView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              '【睡眠ステータス】',
-              style: TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.bold),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 月切り替えヘッダー
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+                  onPressed: () => _changeMonth(-1), 
+                ),
+                Text(
+                  '${_focusedMonth.year}年 ${_focusedMonth.month}月',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_forward_ios, color: Colors.black),
+                  onPressed: () => _changeMonth(1), 
+                ),
+              ],
             ),
-          ),
-          _buildDataItem(
-            icon: Icons.access_time_rounded,
-            iconColor: Colors.blueAccent,
-            title: '平均睡眠時間',
-            value: _averageSleepTime, // ★リアルタイムに変動
-            description: 'これまでにカレンダーに記録された全データの平均時間です。',
-          ),
-          _buildDataItem(
-            icon: Icons.sentiment_satisfied_alt_rounded,
-            iconColor: Colors.orangeAccent,
-            title: '調子がいいときの睡眠時間',
-            value: _bestConditionTime, // ★快眠データのみの平均
-            description: 'タイマー停止時やカレンダーで「快眠」と選んだ日の平均です。',
-          ),
-          _buildDataItem(
-            icon: Icons.bolt_rounded,
-            iconColor: Colors.purpleAccent,
-            title: '直近1週間の睡眠効率',
-            value: _sleepEfficiency,
-            description: '布団に入っている時間と実際に寝ている時間の割合です。',
-          ),
-          _buildDataItem(
-            icon: Icons.sync_alt_rounded,
-            iconColor: Colors.redAccent,
-            title: '平日と休日の睡眠ズレ',
-            value: _socialJetlag,
-            description: '平日のアラームと休日のアラームの差によるズレです。',
-          ),
-        ],
+            const SizedBox(height: 16),
+
+            const Text(
+              '📊 月間睡眠スコア推移',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+            ),
+            const SizedBox(height: 12),
+
+            Card(
+              color: Colors.white24, 
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal, 
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(_monthScores.length, (index) {
+                      double score = _monthScores[index];
+                      double barHeight = (score / 100.0) * 120;
+                      if (barHeight < 0) barHeight = 0;
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0), 
+                        child: Column(
+                          children: [
+                            Text(
+                              score > 0 ? '${score.toInt()}' : '-', 
+                              style: const TextStyle(color: Colors.black54, fontSize: 9),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              width: 14, 
+                              height: barHeight == 0 ? 4 : barHeight,
+                              decoration: BoxDecoration(
+                                color: score > 0 ? Colors.black : Colors.black12,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _monthDays[index], 
+                              style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            Text(
+              '🕒 ${_focusedMonth.month}月の平均睡眠時間',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+            ),
+            const SizedBox(height: 12),
+
+            Card(
+              color: Colors.white24,
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildAverageTile('平日平均', '$_avgWeekday', Colors.black),
+                    _buildAverageTile('休日平均', '$_avgWeekend', Colors.black),
+                    _buildAverageTile('月間平均', '$_avgAll', Colors.black),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // ★ ここを「ベスト睡眠パターン」のUIにリニューアル！
+            Text(
+              '✨ ${_focusedMonth.month}月のベスト睡眠パターン',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+            ),
+            const SizedBox(height: 12),
+
+            Card(
+              color: Colors.white24,
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          children: [
+                            const Text('一番スッキリ眠れた就寝時間', style: TextStyle(color: Colors.black54, fontSize: 12)),
+                            const SizedBox(height: 8),
+                            Text(_bestBedTime, style: const TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            const Text('一番スッキリ眠れた睡眠時間', style: TextStyle(color: Colors.black54, fontSize: 12)),
+                            const SizedBox(height: 8),
+                            Text('$_bestDuration h', style: const TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(color: Colors.black12, height: 1),
+                    const SizedBox(height: 12),
+                    const Text(
+                      '※この数値は、あなたが「快眠」および「普通」と回答した日の就寝時刻と睡眠時間を分析し、体が最も調子が良いと感じているリズムを割り出したものです。',
+                      style: TextStyle(color: Colors.black45, fontSize: 11, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -176,51 +373,13 @@ class _SleepDateState extends State<SleepDate> {
     );
   }
 
-  Widget _buildDataItem({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String value,
-    required String description,
-  }) {
-    return Card(
-      color: Colors.white24, 
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: iconColor.withOpacity(0.1),
-              child: Icon(icon, color: iconColor),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(fontSize: 11, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildAverageTile(String title, String val, Color color) {
+    return Column(
+      children: [
+        Text(title, style: const TextStyle(color: Colors.black54, fontSize: 11)),
+        const SizedBox(height: 8),
+        Text('$val h', style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 }
