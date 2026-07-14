@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; 
-import 'SleepTimerPage.dart';  
+import 'package:shared_preferences/shared_preferences.dart';
+import 'SleepTimerPage.dart';
 import 'SleepCalendar.dart';
 import 'SleepDate.dart';
 import 'main.dart';
@@ -24,12 +25,12 @@ class MyApp extends StatelessWidget {
 
 class AlarmSettings {
   String id;
-  String title;          
-  TimeOfDay wakeUpTime;  
-  TimeOfDay sleepTime;   
-  List<bool> selectedDays; 
-  bool isActive;         
-  bool hasFiredToday = false; 
+  String title;
+  TimeOfDay wakeUpTime;
+  TimeOfDay sleepTime;
+  List<bool> selectedDays;
+  bool isActive;
+  bool hasFiredToday = false;
 
   AlarmSettings({
     required this.id,
@@ -39,6 +40,28 @@ class AlarmSettings {
     required this.selectedDays,
     this.isActive = true,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'wakeUpTime': {'hour': wakeUpTime.hour, 'minute': wakeUpTime.minute},
+        'sleepTime': {'hour': sleepTime.hour, 'minute': sleepTime.minute},
+        'selectedDays': selectedDays,
+        'isActive': isActive,
+      };
+
+  factory AlarmSettings.fromJson(Map<String, dynamic> json) {
+    final wake = json['wakeUpTime'] as Map<String, dynamic>;
+    final sleep = json['sleepTime'] as Map<String, dynamic>;
+    return AlarmSettings(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      wakeUpTime: TimeOfDay(hour: wake['hour'] as int, minute: wake['minute'] as int),
+      sleepTime: TimeOfDay(hour: sleep['hour'] as int, minute: sleep['minute'] as int),
+      selectedDays: List<bool>.from(json['selectedDays'] as List<dynamic>),
+      isActive: json['isActive'] as bool? ?? true,
+    );
+  }
 }
 
 class AlarmPage extends StatefulWidget {
@@ -51,31 +74,41 @@ class AlarmPage extends StatefulWidget {
 }
 
 class _AlarmPageState extends State<AlarmPage> {
-  int _selectedIndex = 0; 
-  Timer? _currentTimeTimer; 
-  List<AlarmSettings> _alarmList = []; 
+  int _selectedIndex = 0;
+  Timer? _currentTimeTimer;
+  List<AlarmSettings> _alarmList = [];
   final List<String> _weekDays = ['月', '火', '水', '木', '金', '土', '日'];
 
   @override
   void initState() {
     super.initState();
-    _loadInitialTimes(); 
-    _startClockListener(); 
+    _loadInitialTimes();
+    _startClockListener();
   }
 
   @override
   void dispose() {
-    _currentTimeTimer?.cancel(); 
+    _currentTimeTimer?.cancel();
     super.dispose();
   }
 
   // 保存されている時間を読み込んで画面にセットする
   Future<void> _loadInitialTimes() async {
     final prefs = await SharedPreferences.getInstance();
+
+    if (prefs.containsKey('alarm_list')) {
+      final String jsonStr = prefs.getString('alarm_list') ?? '[]';
+      final List<dynamic> decoded = jsonDecode(jsonStr);
+      setState(() {
+        _alarmList = decoded
+            .map((item) => AlarmSettings.fromJson(item as Map<String, dynamic>))
+            .toList();
+      });
+      return;
+    }
+
     final String savedSleep = prefs.getString('saved_sleepTime') ?? "23:00";
     final String savedWake = prefs.getString('saved_wakeUpTime') ?? "07:00";
-
-    // "23:00" などの文字列を TimeOfDay に分解
     final sleepParts = savedSleep.split(':');
     final wakeParts = savedWake.split(':');
 
@@ -92,23 +125,61 @@ class _AlarmPageState extends State<AlarmPage> {
     });
   }
 
-  // 睡眠時間とアラーム時間をシンプルに保存する関数
+  String _formatTimeOfDay(TimeOfDay time) {
+    return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> _saveAlarms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String jsonStr = jsonEncode(_alarmList.map((alarm) => alarm.toJson()).toList());
+    await prefs.setString('alarm_list', jsonStr);
+
+    if (_alarmList.isNotEmpty) {
+      await prefs.setString('saved_sleepTime', _formatTimeOfDay(_alarmList[0].sleepTime));
+      await prefs.setString('saved_wakeUpTime', _formatTimeOfDay(_alarmList[0].wakeUpTime));
+    } else {
+      await prefs.remove('saved_sleepTime');
+      await prefs.remove('saved_wakeUpTime');
+    }
+  }
+
   Future<void> _saveSimpleTimes(TimeOfDay sleep, TimeOfDay wake) async {
     final prefs = await SharedPreferences.getInstance();
-    String sleepStr = "${sleep.hour.toString().padLeft(2, '0')}:${sleep.minute.toString().padLeft(2, '0')}";
-    String wakeStr = "${wake.hour.toString().padLeft(2, '0')}:${wake.minute.toString().padLeft(2, '0')}";
-    
+    String sleepStr = _formatTimeOfDay(sleep);
+    String wakeStr = _formatTimeOfDay(wake);
+
     await prefs.setString('saved_sleepTime', sleepStr);
     await prefs.setString('saved_wakeUpTime', wakeStr);
+    await _saveAlarms();
+  }
+
+  void _addNewAlarm() {
+    setState(() {
+      _alarmList.add(AlarmSettings(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: '新しいアラーム',
+        sleepTime: const TimeOfDay(hour: 23, minute: 0),
+        wakeUpTime: const TimeOfDay(hour: 7, minute: 0),
+        selectedDays: [true, true, true, true, true, false, false],
+      ));
+    });
+    _saveAlarms();
+  }
+
+  void _deleteAlarm(int index) {
+    setState(() {
+      _alarmList.removeAt(index);
+    });
+    _saveAlarms();
   }
 
   void _startClockListener() {
     _currentTimeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_alarmList.isEmpty) return;
       final now = DateTime.now();
-      final currentWeekday = now.weekday; 
-      final currentHour = now.hour;       
-      final currentMinute = now.minute;   
+      final currentWeekday = now.weekday;
+      final currentHour = now.hour;
+      final currentMinute = now.minute;
 
       if (now.second == 0) {
         for (var alarm in _alarmList) {
@@ -136,7 +207,7 @@ class _AlarmPageState extends State<AlarmPage> {
   void _triggerAlarmDialog(String title, String message, bool isWakeUp) {
     showDialog(
       context: context,
-      barrierDismissible: false, 
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: isWakeUp ? Colors.red[900] : Colors.grey[850],
@@ -188,9 +259,26 @@ class _AlarmPageState extends State<AlarmPage> {
         title: const Text('アラーム設定'),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: _addNewAlarm,
+            tooltip: 'アラーム追加',
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _alarmList.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  '現在、アラームはありません。\n右上の＋から追加してください。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black87, fontSize: 16),
+                ),
+              ),
+            )
           : ListView.builder(
               itemCount: _alarmList.length,
               itemBuilder: (context, index) {
@@ -208,14 +296,24 @@ class _AlarmPageState extends State<AlarmPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(alarm.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
-                            Switch(
-                              activeColor: Colors.black,
-                              value: alarm.isActive,
-                              onChanged: (value) {
-                                setState(() {
-                                  alarm.isActive = value;
-                                });
-                              },
+                            Row(
+                              children: [
+                                Switch(
+                                  activeColor: Colors.black,
+                                  value: alarm.isActive,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      alarm.isActive = value;
+                                    });
+                                    _saveAlarms();
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.black54),
+                                  onPressed: () => _deleteAlarm(index),
+                                  tooltip: '削除',
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -230,7 +328,7 @@ class _AlarmPageState extends State<AlarmPage> {
                                   setState(() {
                                     alarm.sleepTime = selected;
                                   });
-                                  await _saveSimpleTimes(selected, alarm.wakeUpTime);
+                                  _saveAlarms();
                                 }
                               },
                               child: Column(
@@ -248,7 +346,7 @@ class _AlarmPageState extends State<AlarmPage> {
                                   setState(() {
                                     alarm.wakeUpTime = selected;
                                   });
-                                  await _saveSimpleTimes(alarm.sleepTime, selected);
+                                  _saveAlarms();
                                 }
                               },
                               child: Column(
@@ -268,6 +366,7 @@ class _AlarmPageState extends State<AlarmPage> {
                               setState(() {
                                 alarm.selectedDays[dayIndex] = !alarm.selectedDays[dayIndex];
                               });
+                              _saveAlarms();
                             },
                             borderRadius: const BorderRadius.all(Radius.circular(8)),
                             selectedBorderColor: Colors.black,
@@ -288,7 +387,7 @@ class _AlarmPageState extends State<AlarmPage> {
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.black,
-        showSelectedLabels: false,    
+        showSelectedLabels: false,
         showUnselectedLabels: false,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: CircleAvatar(child: Icon(Icons.alarm, color: Colors.black), backgroundColor: Colors.grey), label: 'Alarm'),

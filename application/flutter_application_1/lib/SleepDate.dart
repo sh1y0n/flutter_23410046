@@ -24,6 +24,8 @@ class _SleepDateState extends State<SleepDate> {
   double _avgAll = 0.0;
   double _avgWeekday = 0.0;
   double _avgWeekend = 0.0;
+  double _avgScore = 0.0;
+  String _monthSummary = ''; // 追加
 
   // ★ ベストパターンの表示用変数
   String _bestBedTime = '--:--';
@@ -44,6 +46,7 @@ class _SleepDateState extends State<SleepDate> {
     int weekdayCount = 0;
     int weekendCount = 0;
     int validLogCount = 0;
+    double totalScore = 0; // 追加
 
     // ベスト時間算出用の変数
     double totalSleepMinutesForBest = 0;
@@ -126,6 +129,7 @@ class _SleepDateState extends State<SleepDate> {
           scores.add(score);
           dayLabels.add(label);
 
+          totalScore += score;
         } catch (e) {
           print('$dateKey のデータ解析エラー: $e');
           scores.add(0.0);
@@ -141,6 +145,7 @@ class _SleepDateState extends State<SleepDate> {
     double avgAll = validLogCount > 0 ? totalHoursAll / validLogCount : 0.0;
     double avgWeekday = weekdayCount > 0 ? totalHoursWeekday / weekdayCount : 0.0;
     double avgWeekend = weekendCount > 0 ? totalHoursWeekend / weekendCount : 0.0;
+    double avgScore = validLogCount > 0 ? totalScore / validLogCount : 0.0;
 
     // ★ ベスト睡眠パターンの最終算出
     String bestBedTimeStr = '--:--';
@@ -161,14 +166,26 @@ class _SleepDateState extends State<SleepDate> {
       bestDurationStr = avgSleepHours.toStringAsFixed(1);
     }
 
+    // 月の睡眠評価を算出
+    String monthSummary;
+    if (avgAll >= 7.0) {
+      monthSummary = '今月の睡眠は良好です。平均睡眠時間は十分です。';
+    } else if (avgAll >= 6.0) {
+      monthSummary = '今月の睡眠はやや不足気味です。あと少し睡眠時間を確保しましょう。';
+    } else {
+      monthSummary = '今月の睡眠は不足しています。十分な睡眠を優先しましょう。';
+    }
+
     setState(() {
       _monthScores = scores;
       _monthDays = dayLabels;
       _avgAll = double.parse(avgAll.toStringAsFixed(1));
       _avgWeekday = double.parse(avgWeekday.toStringAsFixed(1));
       _avgWeekend = double.parse(avgWeekend.toStringAsFixed(1));
+      _avgScore = double.parse(avgScore.toStringAsFixed(1));
       _bestBedTime = bestBedTimeStr;
       _bestDuration = bestDurationStr;
+      _monthSummary = monthSummary; // 追加
     });
   }
 
@@ -285,6 +302,28 @@ class _SleepDateState extends State<SleepDate> {
             ),
             const SizedBox(height: 24),
 
+            Card(
+              color: Colors.white24,
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '月間睡眠スコア平均',
+                      style: TextStyle(color: Colors.black54, fontSize: 14),
+                    ),
+                    Text(
+                      _avgScore > 0 ? _avgScore.toStringAsFixed(1) : '-',
+                      style: const TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             Text(
               '🕒 ${_focusedMonth.month}月の平均睡眠時間',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
@@ -305,6 +344,11 @@ class _SleepDateState extends State<SleepDate> {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _monthSummary,
+              style: const TextStyle(color: Colors.black87, fontSize: 14),
             ),
             const SizedBox(height: 24),
 

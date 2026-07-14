@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; 
 import 'AlarmPage.dart';
@@ -38,7 +39,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String _latestAlarmTime = "07:00"; 
   String _latestSleepTime = "23:00"; 
   String _activeDaysStr = "月・火・水・木・金"; 
-  bool _isAlarmActive = true; 
+  bool _isAlarmActive = true;
+  bool _hasAlarm = false;
 
   @override
   void initState() {
@@ -46,13 +48,56 @@ class _MyHomePageState extends State<MyHomePage> {
     _loadAlarmAndTimerStatus(); 
   }
 
+  String _formatActiveDays(List<dynamic>? selectedDays) {
+    if (selectedDays == null || selectedDays.isEmpty) return '設定なし';
+    final names = ['月', '火', '水', '木', '金', '土', '日'];
+    final active = <String>[];
+    for (var i = 0; i < selectedDays.length && i < names.length; i++) {
+      if (selectedDays[i] == true) active.add(names[i]);
+    }
+    if (active.isEmpty) return '指定なし';
+    if (active.length == 7) return '毎日';
+    return active.join('・');
+  }
+
   // 起動時にSharedPreferencesのシンプルデータを直接読み込む
   Future<void> _loadAlarmAndTimerStatus() async {
     final prefs = await SharedPreferences.getInstance();
+
+    bool hasAlarm = false;
+    bool isActive = true;
+    String latestSleep = "23:00";
+    String latestAlarm = "07:00";
+    String activeDays = "月・火・水・木・金";
+
+    if (prefs.containsKey('alarm_list')) {
+      final jsonStr = prefs.getString('alarm_list') ?? '[]';
+      final decoded = jsonDecode(jsonStr) as List<dynamic>;
+      if (decoded.isNotEmpty) {
+        final first = decoded.first as Map<String, dynamic>;
+        final sleep = first['sleepTime'] as Map<String, dynamic>;
+        final wake = first['wakeUpTime'] as Map<String, dynamic>;
+        latestSleep = '${(sleep['hour'] as int).toString().padLeft(2, '0')}:${(sleep['minute'] as int).toString().padLeft(2, '0')}';
+        latestAlarm = '${(wake['hour'] as int).toString().padLeft(2, '0')}:${(wake['minute'] as int).toString().padLeft(2, '0')}';
+        isActive = first['isActive'] as bool? ?? true;
+        activeDays = _formatActiveDays(first['selectedDays'] as List<dynamic>?);
+        hasAlarm = true;
+      }
+    }
+
+    if (!hasAlarm && prefs.containsKey('saved_sleepTime') && prefs.containsKey('saved_wakeUpTime')) {
+      latestSleep = prefs.getString('saved_sleepTime') ?? latestSleep;
+      latestAlarm = prefs.getString('saved_wakeUpTime') ?? latestAlarm;
+      hasAlarm = true;
+    }
+
     setState(() {
       _isSleepingNow = prefs.getBool('isCounting') ?? false;
-      _latestSleepTime = prefs.getString('saved_sleepTime') ?? "23:00";
-      _latestAlarmTime = prefs.getString('saved_wakeUpTime') ?? "07:00";
+      _latestSleepTime = latestSleep;
+      _latestAlarmTime = latestAlarm;
+      _isAlarmActive = isActive;
+      _hasAlarm = hasAlarm;
+      _activeDaysStr = activeDays;
     });
   }
 
@@ -173,37 +218,44 @@ class _MyHomePageState extends State<MyHomePage> {
                       ],
                     ),
                     const Divider(height: 24, color: Colors.black26),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Column(
-                          children: [
-                            const Text('🌙 就寝時間', style: TextStyle(color: Colors.black54, fontSize: 12)),
-                            const SizedBox(height: 4),
-                            Text(_latestSleepTime, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
-                          ],
-                        ),
-                        const Icon(Icons.arrow_forward, color: Colors.black54),
-                        Column(
-                          children: [
-                            const Text('☀️ 起床時間', style: TextStyle(color: Colors.black54, fontSize: 12)),
-                            const SizedBox(height: 4),
-                            Text(_latestAlarmTime, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24, color: Colors.black26),
-                    Row(
-                      children: [
-                        const Icon(Icons.repeat, color: Colors.black54, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          '対象曜日: $_activeDaysStr',
-                          style: const TextStyle(fontSize: 13, color: Colors.black54),
-                        ),
-                      ],
-                    ),
+                    if (_hasAlarm) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Column(
+                            children: [
+                              const Text('🌙 就寝時間', style: TextStyle(color: Colors.black54, fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Text(_latestSleepTime, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                            ],
+                          ),
+                          const Icon(Icons.arrow_forward, color: Colors.black54),
+                          Column(
+                            children: [
+                              const Text('☀️ 起床時間', style: TextStyle(color: Colors.black54, fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Text(_latestAlarmTime, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24, color: Colors.black26),
+                      Row(
+                        children: [
+                          const Icon(Icons.repeat, color: Colors.black54, size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            '対象曜日: $_activeDaysStr',
+                            style: const TextStyle(fontSize: 13, color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      const Text(
+                        '現在、設定されたアラームはありません。\nアラーム画面の右上「＋」から追加できます。',
+                        style: TextStyle(fontSize: 14, color: Colors.black54),
+                      ),
+                    ],
                   ],
                 ),
               ),
