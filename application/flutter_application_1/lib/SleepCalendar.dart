@@ -79,6 +79,55 @@ class _SleepCalendarPageState extends State<SleepCalendarPage> {
     return '${hours}h'; 
   }
 
+  String _formatTimeText(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return '--:--';
+    try {
+      final dt = DateTime.parse(isoString);
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '--:--';
+    }
+  }
+
+  Future<void> _deleteRecord(DateTime targetDay) async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateKey = _formatDateKey(targetDay);
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text('記録を削除しますか？', style: TextStyle(color: Colors.white)),
+        content: Text('$dateKey の睡眠記録を削除します。', style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('削除する'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    await prefs.remove(dateKey);
+    await _loadAllSleepData();
+
+    if (!mounted) return;
+    setState(() {
+      _selectedDay = targetDay;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$dateKey の記録を削除しました。')),
+    );
+  }
+
   void _showEditDialog(DateTime targetDay, Map<String, dynamic>? existingData) async {
     final prefs = await SharedPreferences.getInstance();
     final dateKey = _formatDateKey(targetDay);
@@ -242,7 +291,7 @@ class _SleepCalendarPageState extends State<SleepCalendarPage> {
       decoration = const BoxDecoration(color: Colors.black, shape: BoxShape.circle);
       textColor = Colors.white;
     } else if (isToday) {
-      decoration = const BoxDecoration(color: Colors.black, shape: BoxShape.circle);
+      decoration = const BoxDecoration();
       textColor = Colors.black;
     }
 
@@ -357,19 +406,34 @@ class _SleepCalendarPageState extends State<SleepCalendarPage> {
                         ),
                         const SizedBox(height: 15),
                         if (dayData != null) ...[
+                          Text('🛏 就寝: ${_formatTimeText(dayData['sleepStartTime'])}', style: const TextStyle(fontSize: 16, color: Colors.black)),
+                          const SizedBox(height: 5),
+                          Text('🌅 起床: ${_formatTimeText(dayData['wakeUpTime'])}', style: const TextStyle(fontSize: 16, color: Colors.black)),
+                          const SizedBox(height: 5),
                           Text('⏳ 睡眠時間: ${dayData['durationText']}', style: const TextStyle(fontSize: 16, color: Colors.black)),
                           const SizedBox(height: 5),
                           Text('😆 睡眠の質: ${dayData['quality']}', style: const TextStyle(fontSize: 16, color: Colors.black)),
                           const Spacer(),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
-                              icon: const Icon(Icons.edit),
-                              label: const Text('この日の記録を修正する', style: TextStyle(fontWeight: FontWeight.bold)),
-                              onPressed: () => _showEditDialog(_selectedDay!, dayData),
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                                  icon: const Icon(Icons.edit),
+                                  label: const Text('修正', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  onPressed: () => _showEditDialog(_selectedDay!, dayData),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: const Text('削除', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  onPressed: () => _deleteRecord(_selectedDay!),
+                                ),
+                              ),
+                            ],
                           ),
                         ] else ...[
                           const Text('この日の睡眠記録はありません。', style: TextStyle(fontSize: 15, color: Colors.black54)),
